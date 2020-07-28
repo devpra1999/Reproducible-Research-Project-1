@@ -114,3 +114,60 @@ We also need to find the 5 minute interval with the maximum average number of st
 ```{r max_step_interval}
 step_interval$interval[which.max(step_interval$Average_steps_per_interval)]
 ```
+
+## Imputing Missing Values
+
+The total  number of missing values in the data are:
+```{r num_na}
+sum(is.na(activity))
+```
+
+On observing the dataframe activity we find that only the steps variable has NA values, and also that there are whole days with missing values, i.e. the steps has NA for each interval of the whole day. Given the variation within the average seen in the previous day we'll impute the missing values with the average stps value for the interval of the data.
+
+It is done as follows:
+```{r impute}
+for (i in 1:length(activity$steps)){
+    if (is.na(activity$steps[i])){
+        activity$steps[i] <- step_interval$Average_steps_per_interval[step_interval$interval == activity$interval[i]]
+    }
+}
+
+```
+
+The updated histogram, mean and median are as follows:
+
+```{r hist_mean_median}
+date_steps <- activity %>%
+    group_by(date) %>%
+    summarise(Steps_per_day = sum(steps))
+
+
+ggplot(data = date_steps, aes(x = Steps_per_day)) + geom_histogram()
+
+mean(date_steps$Steps_per_day)
+
+median(date_steps$Steps_per_day)
+
+```
+
+## Activity Patterns
+
+We create a new variable called day_type with two different factors "weekday" and "weekend". After that we make a panel plot using ggplot for the  two different types of days
+
+```{r pattern}
+
+wd <- c("Monday","Tuesday","Wednesday","Thursday","Friday")
+we <- c("Saturday","Sunday"
+        )
+activity <- activity %>%
+    mutate(day_type = ifelse(test = weekdays(date) %in% wd, yes = "weekday", no = "weekend"))
+
+activity$day_type <- as.factor(activity$day_type)
+
+step_interval <- activity %>%
+    group_by(interval, interval_hours, day_type) %>%
+    summarise(Average_steps_per_interval = mean(steps))
+
+
+ggplot(data = step_interval, aes(x = interval_hours, y = Average_steps_per_interval)) + geom_line() + facet_grid(.~day_type)
+```
